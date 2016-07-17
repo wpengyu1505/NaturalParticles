@@ -11,8 +11,9 @@ function Particle(id, mass, color, posX, posY, speedX, speedY) {
     this.speedX = speedX;
     this.speedY = speedY;
     this.radius = getRadiusByMass(mass);
+    this.isGround = false;
     
-    this.update = function(forceX, forceY, height, width, gravity) {
+    this.update = function(forceX, forceY, height, width, gravity, fraction) {
         var accelerationX = forceX / mass;
         var accelerationY = forceY / mass + gravity;
         this.speedX += accelerationX;
@@ -26,12 +27,21 @@ function Particle(id, mass, color, posX, posY, speedX, speedY) {
         if (this.posY >= height - this.radius) {
             this.speedY = -Math.abs(this.speedY); 
             
-            // Boundary condition, avoid keep sinking
+            // Ground condition, avoid keep sinking
             if (Math.abs(this.speedY) <= 1) {
                 this.posY = height - this.radius;
+                this.isGround = true;
+            } else {
+                this.isGround = false;
             }
         }
         if (this.posY <= this.radius) this.speedY = Math.abs(this.speedY);
+        
+        if (this.isGround) {
+            if (this.speedX > 0) this.speedX -= fraction;
+            if (this.speedX < 0) this.speedX += fraction;
+            //console.log('grounded: ' + this.speedX);
+        }
     }
     
     this.wakeUp = function() {
@@ -58,6 +68,7 @@ function drawParticle(context, particle) {
 var WIDTH = 1000;
 var HEIGHT = 600;
 var GRAVITY = 1;
+var GROUND_FRACTION = 0.01;
 var forceX = 0;
 var forceY = 0;
 var context = document.getElementById("canvas").getContext("2d");
@@ -65,12 +76,13 @@ var particleList = [];
 var colorList = ['black', 'green', 'yellow', 'red', 'purple', 'pink', 'blue', 'orange'];
 var counter = 0;
 
+// Transpancy
 context.globalAlpha = 0.5;
 
 document.onmousedown = function(mouse) {
     var color = colorList[Math.round(Math.random() * colorList.length)];
-    var x = Math.round(Math.random() * WIDTH);
-    var y = 100;
+    var x = mouse.clientX;
+    var y = mouse.clientY;
     particleList.push(new Particle(counter, 100, color, x, y, 0, 0));
     counter ++;
 }
@@ -102,7 +114,7 @@ document.onkeyup = function(event) {
 function update() {
     context.clearRect(0, 0, WIDTH, HEIGHT);
     for (var i = 0; i < particleList.length; i ++) {
-        particleList[i].update(forceX, forceY, HEIGHT, WIDTH, GRAVITY);
+        particleList[i].update(forceX, forceY, HEIGHT, WIDTH, GRAVITY, GROUND_FRACTION);
         drawParticle(context, particleList[i]);
     }
 }
